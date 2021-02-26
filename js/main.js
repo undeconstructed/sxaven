@@ -7,30 +7,23 @@ const shavian =    [...'𐑨𐑚𐑔𐑗𐑛𐑧𐑓𐑜𐑡𐑣𐑙𐑦𐑢𐑠
 
 const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI" ]
 
-function trans(letter) {
-  let idx = latinBig.indexOf(letter)
-  if (idx >= 0) {
-    return '·' + shavian[idx]
-  }
-
-  idx = latinSmall.indexOf(letter)
-  if (idx >= 0) {
-    return shavian[idx]
-  }
-
-  return letter
-}
-
 function processTextNode(textNode) {
   let input = textNode.textContent
   let newNode = mkel('span')
 
+  let dotWord = false
+  let lastLetter = null
   let latinWord = ''
   let shavianWord = ''
 
   let pushWord = function() {
     if (shavianWord == '') {
       return
+    }
+
+    if (dotWord) {
+      shavianWord = '·' + shavianWord
+      dotWord = false
     }
 
     let span = mkel('span', { classes: [ 'w' ] })
@@ -42,20 +35,74 @@ function processTextNode(textNode) {
     latinWord = shavianWord = ''
   }
 
-  for (let inLetter of input) {
-    let outLetter = trans(inLetter)
-    if (outLetter != inLetter || outLetter == '-') {
-      latinWord += inLetter
-      shavianWord += outLetter
-      continue
+  let pushLast = function() {
+    if (lastLetter != null) {
+      let code = lastLetter.code
+      latinWord += lastLetter.alpha[code]
+      shavianWord += shavian[code]
+      lastLetter = null
     }
-
-    pushWord()
-
-    newNode.append(outLetter)
   }
 
-  pushWord()
+  let pushInput = function(inLetter) {
+    if (inLetter == null) {
+      pushLast()
+      pushWord()
+      return
+    }
+
+    if (inLetter == 'x') {
+      if (lastLetter != null) {
+        lastLetter.code++
+      } else {
+        latinWord += 'x'
+        shavianWord += 'x'
+      }
+      return
+    }
+
+    if (inLetter == '·') {
+      dotWord = true
+      return
+    }
+
+    let idx = latinBig.indexOf(inLetter)
+    if (idx >= 0) {
+      pushLast()
+      lastLetter = { code: idx, alpha: latinBig }
+      dotWord = true
+      return
+    }
+
+    idx = latinSmall.indexOf(inLetter)
+    if (idx >= 0) {
+      pushLast()
+      lastLetter = { code: idx, alpha: latinSmall }
+      return
+    }
+
+    idx = shavian.indexOf(inLetter)
+    if (idx >= 0) {
+      pushLast()
+      if (dotWord && latinWord == '') {
+        lastLetter = { code: idx, alpha: latinBig }
+      } else {
+        lastLetter = { code: idx, alpha: latinSmall }
+      }
+      pushLast()
+      return
+    }
+
+    pushLast()
+    pushWord()
+    newNode.append(inLetter)
+  }
+
+  for (let inLetter of input) {
+    pushInput(inLetter)
+  }
+
+  pushInput(null)
 
   return newNode
 }
