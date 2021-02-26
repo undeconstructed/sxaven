@@ -1,7 +1,7 @@
 
 @font-face {
   font-family: "Ormin Regular";
-  src: url("/fonts/Ormin-Regular.otf") format("opentype");
+  src: url("../fonts/Ormin-Regular.otf") format("opentype");
 }
 
 body {
