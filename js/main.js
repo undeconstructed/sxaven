@@ -68,6 +68,13 @@ function processTextNode(textNode) {
       return
     }
 
+    if (inLetter == '-') {
+      pushLast()
+      latinWord += '-'
+      shavianWord += '-'
+      return
+    }
+
     if (inLetter == '·') {
       dotWord = true
       return
