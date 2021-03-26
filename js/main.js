@@ -7,6 +7,10 @@ const shavian =    [...'𐑨𐑚𐑔𐑗𐑛𐑧𐑓𐑜𐑡𐑣𐑙𐑦𐑢𐑠
 
 const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI" ]
 
+function canHat(letter) {
+  return "cghjsu".indexOf(latinSmall[letter.code]) >= 0
+}
+
 function processTextNode(textNode) {
   let input = textNode.textContent
   let newNode = mkel('span')
@@ -52,9 +56,11 @@ function processTextNode(textNode) {
     }
 
     if (inLetter == 'x') {
-      if (lastLetter != null) {
+      if (lastLetter != null && canHat(lastLetter)) {
         lastLetter.code++
+        pushLast()
       } else {
+        pushLast()
         latinWord += 'x'
         shavianWord += 'x'
       }
