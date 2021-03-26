@@ -4,6 +4,7 @@ import { join, mkel, shuffle, isProbablyInstalled, hook, hook_chan, switchy, sel
 const latinBig =   [...'ABCĈDEFGĜHĤIJĴKLMNOPRSŜTUŬVZ']
 const latinSmall = [...'abcĉdefgĝhĥijĵklmnoprsŝtuŭvz']
 const shavian =    [...'𐑨𐑚𐑔𐑗𐑛𐑧𐑓𐑜𐑡𐑣𐑙𐑦𐑢𐑠𐑒𐑤𐑫𐑵𐑩𐑐𐑮𐑕𐑖𐑑𐑪𐑘𐑝𐑟']
+const anyLetter = /\p{Letter}/u
 
 const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI" ]
 
@@ -96,6 +97,13 @@ function processTextNode(textNode) {
         lastLetter = { code: idx, alpha: latinSmall }
       }
       pushLast()
+      return
+    }
+
+    if (anyLetter.test(inLetter)) {
+      pushLast()
+      latinWord += inLetter
+      shavianWord += inLetter.toLowerCase()
       return
     }
 
