@@ -4,6 +4,9 @@ import { join, mkel, shuffle, isProbablyInstalled, hook, hook_chan, switchy, sel
 const latinBig =   [...'ABCĈDEFGĜHĤIJĴKLMNOPRSŜTUŬVZ']
 const latinSmall = [...'abcĉdefgĝhĥijĵklmnoprsŝtuŭvz']
 const shavian =    [...'𐑨𐑚𐑔𐑗𐑛𐑧𐑓𐑜𐑡𐑣𐑙𐑦𐑢𐑠𐑒𐑤𐑫𐑵𐑩𐑐𐑮𐑕𐑖𐑑𐑪𐑘𐑝𐑟']
+const latinBigAccent = [...'Á', 0, 0, 0, 0, 'É', 0, 0, 0, 0, 0, 'Í', 0, 0, 0, 0, 0, 0, 'Ó', 0, 0, 0, 0, 0, 'Ú', 0, 0, 0]
+const latinSmallAccent = [...'á', 0, 0, 0, 0, 'é', 0, 0, 0, 0, 0, 'í', 0, 0, 0, 0, 0, 0, 'ó', 0, 0, 0, 0, 0, 'ú', 0, 0, 0]
+// const shavianAccent =    [...'𐑨', 0, 0, 0, 0, '𐑧', 0, 0, 0, 0, 0, '𐑦', 0, 0, 0, 0, 0, 0, '𐑩', 0, 0, 0, 0, 0, '𐑪', 0, 0, 0]
 const anyLetter = /\p{Letter}/u
 
 const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI" ]
@@ -43,8 +46,14 @@ function processTextNode(textNode) {
   let pushLast = function() {
     if (lastLetter != null) {
       let code = lastLetter.code
-      latinWord += lastLetter.alpha[code]
-      shavianWord += shavian[code]
+      if (lastLetter.stress) {
+        latinWord += lastLetter.alpha[code]
+        let s = shavian[code]
+        shavianWord += (String.fromCodePoint(s.codePointAt(0), 0x0301)).normalize()
+      } else {
+        latinWord += lastLetter.alpha[code]
+        shavianWord += shavian[code]
+      }
       lastLetter = null
     }
   }
@@ -83,7 +92,7 @@ function processTextNode(textNode) {
     let idx = latinBig.indexOf(inLetter)
     if (idx >= 0) {
       pushLast()
-      lastLetter = { code: idx, alpha: latinBig }
+      lastLetter = { code: idx, alpha: latinBig, stress: false }
       dotWord = true
       return
     }
@@ -91,7 +100,22 @@ function processTextNode(textNode) {
     idx = latinSmall.indexOf(inLetter)
     if (idx >= 0) {
       pushLast()
-      lastLetter = { code: idx, alpha: latinSmall }
+      lastLetter = { code: idx, alpha: latinSmall, stress: false }
+      return
+    }
+
+    idx = latinBigAccent.indexOf(inLetter)
+    if (idx >= 0) {
+      pushLast()
+      lastLetter = { code: idx, alpha: latinBigAccent, stress: true }
+      dotWord = true
+      return
+    }
+
+    idx = latinSmallAccent.indexOf(inLetter)
+    if (idx >= 0) {
+      pushLast()
+      lastLetter = { code: idx, alpha: latinSmallAccent, stress: true }
       return
     }
 
@@ -99,9 +123,9 @@ function processTextNode(textNode) {
     if (idx >= 0) {
       pushLast()
       if (dotWord && latinWord == '') {
-        lastLetter = { code: idx, alpha: latinBig }
+        lastLetter = { code: idx, alpha: latinBig, stress: false }
       } else {
-        lastLetter = { code: idx, alpha: latinSmall }
+        lastLetter = { code: idx, alpha: latinSmall, stress: false }
       }
       pushLast()
       return
