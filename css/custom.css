@@ -103,3 +103,37 @@ body {
   background-color: #ffe;
   padding: 1em;
 }
+
+@media (prefers-color-scheme: light) {
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #333;
+    color: #ddd;
+  }
+  #inblock .entry {
+    background-color: #333;
+  }
+  #inblock button[type=reset] {
+    color: white;
+  }
+  #output {
+    background-color: #666;
+  }
+}
+
+@media print {
+  body, #inblock, #output {
+    background: none;
+  }
+  body {
+    color: black;
+  }
+  #inblock {
+    display: none;
+  }
+  a:link:after, a:visited:after {
+    content: " (" attr(href) ")";
+  }
+}
