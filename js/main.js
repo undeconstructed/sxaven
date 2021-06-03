@@ -16,15 +16,15 @@ function canHat(letter) {
 }
 
 const mixPatterns = [
-  ['aŭ', ']'], ['la', '\\'], ['kaj', '/'],
+  [/aŭ/g, ']'], [/la/g, '\\'], [/kaj/g, '/'],
   ['as', '@'], ['es', '#'], ['is', '$'], ['os', '^'], ['us', '&'],
-  ['ojn', '\''], ['on', '*'], ['oj', '_'],
-  ['ajn', '['], ['an', '{'], ['aj', '}']
+  [/ojn/g, '\''], [/on/g, '*'], [/oj/g, '_'],
+  [/ajn/g, '['], [/an/g, '{'], [/aj/g, '}']
 ]
 
 function rewriteMix(mixText) {
   for (let r of mixPatterns) {
-    mixText = mixText.replace(r[0], r[1])
+    mixText = mixText.replaceAll(r[0], r[1])
   }
   return mixText
 }

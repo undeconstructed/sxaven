@@ -130,8 +130,12 @@ body {
   body {
     color: black;
   }
-  #inblock {
+  #totop, #inblock {
     display: none;
+  }
+  #output {
+    padding: 0;
+    border: none;
   }
   a:link:after, a:visited:after {
     content: " (" attr(href) ")";
