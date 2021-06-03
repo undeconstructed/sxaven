@@ -9,19 +9,36 @@ const latinSmallAccent = [...'á', 0, 0, 0, 0, 'é', 0, 0, 0, 0, 0, 'í', 0, 0, 
 // const shavianAccent =    [...'𐑨', 0, 0, 0, 0, '𐑧', 0, 0, 0, 0, 0, '𐑦', 0, 0, 0, 0, 0, 0, '𐑩', 0, 0, 0, 0, 0, '𐑪', 0, 0, 0]
 const anyLetter = /\p{Letter}/u
 
-const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI" ]
+const basicTags = [ "P", "DIV", "SPAN", "EM", "STRONG", "I", "B", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "HR", "UL", "OL", "LI", "DL", "DT", "DD" ]
 
 function canHat(letter) {
   return "cghjsu".indexOf(latinSmall[letter.code]) >= 0
 }
 
-function processTextNode(textNode) {
+const mixPatterns = [
+  ['la', '\\'], ['kaj', '/'],
+  ['as', '@'], ['es', '#'], ['is', '$'], ['os', '^'], ['us', '&'],
+  ['ojn', '\''], ['on', '*'], ['oj', '_'],
+  ['ajn', '['], ['an', '{'], ['aj', '}'],
+  ['aŭ', ']']
+]
+
+function rewriteMix(mixText) {
+  for (let r of mixPatterns) {
+    mixText = mixText.replace(r[0], r[1])
+  }
+  return mixText
+}
+
+function processTextNode(textNode, unicode) {
   let input = textNode.textContent
   let newNode = mkel('span')
 
   let dotWord = false
   let lastLetter = null
+
   let latinWord = ''
+  let mixWord = ''
   let shavianWord = ''
 
   let pushWord = function() {
@@ -31,16 +48,22 @@ function processTextNode(textNode) {
 
     if (dotWord) {
       shavianWord = '·' + shavianWord
+      mixWord = '·' + mixWord
       dotWord = false
     }
 
     let span = mkel('span', { classes: [ 'w' ] })
     let ss = mkel('span', { text: shavianWord })
+    let sm = mkel('span', { classes: [ 'mix' ], text: rewriteMix(mixWord) })
     let sl = mkel('span', { text: latinWord })
-    span.append(ss, sl)
+    if (unicode) {
+      span.append(ss, sl)
+    } else {
+      span.append(sm, sl)
+    }
     newNode.append(span)
 
-    latinWord = shavianWord = ''
+    latinWord = mixWord = shavianWord = ''
   }
 
   let pushLast = function() {
@@ -48,10 +71,13 @@ function processTextNode(textNode) {
       let code = lastLetter.code
       if (lastLetter.stress) {
         latinWord += lastLetter.alpha[code]
+        let l = latinSmall[code]
+        mixWord += (String.fromCodePoint(l.codePointAt(0), 0x0301)) // must not normalize() !
         let s = shavian[code]
         shavianWord += (String.fromCodePoint(s.codePointAt(0), 0x0301)).normalize()
       } else {
         latinWord += lastLetter.alpha[code]
+        mixWord += latinSmall[code]
         shavianWord += shavian[code]
       }
       lastLetter = null
@@ -160,28 +186,28 @@ function copyElementNode(elementNode) {
   if (tagName == 'IMG') {
     return mkel('IMG', { src: elementNode.src })
   }
-  if (!basicTags.includes(tagName)) {
-    return mkel('FOO')
+  if (basicTags.includes(tagName)) {
+    return mkel(tagName)
   }
-  return mkel(tagName)
+  return mkel('FOO')
 }
 
-function processElementNode(elementNode) {
-  let newChildren = processNodes(elementNode.childNodes)
+function processElementNode(elementNode, unicode) {
+  let newChildren = processNodes(elementNode.childNodes, unicode)
   let newNode = copyElementNode(elementNode)
   newNode.append(...newChildren)
   return newNode
 }
 
-function processNodes(nodes) {
+function processNodes(nodes, unicode) {
   let newNodes = []
 
   for (let node of nodes) {
     if (node.nodeType == Node.TEXT_NODE) {
-      let newNode = processTextNode(node)
+      let newNode = processTextNode(node, unicode)
       newNodes.push(newNode)
     } if (node.nodeType == Node.ELEMENT_NODE) {
-      let newNode = processElementNode(node)
+      let newNode = processElementNode(node, unicode)
       if (newNode.tagName == "FOO") {
         newNodes.push(...newNode.childNodes)
       } else {
@@ -193,13 +219,13 @@ function processNodes(nodes) {
   return newNodes
 }
 
-function process(inputArea, outputArea) {
-  let newNodes = processNodes(inputArea.childNodes)
+function process(inputArea, outputArea, unicode) {
+  let newNodes = processNodes(inputArea.childNodes, unicode)
   output.replaceChildren(...newNodes)
 }
 
 main(function ({window, document, localStorage}) {
-  console.log('start')
+  // console.log('start')
 
   let startup = true
 
@@ -213,17 +239,22 @@ main(function ({window, document, localStorage}) {
   }
 
   let inform = document.querySelector('#inform')
+  let unicodeSwitch = inform.querySelector('[name=unicode]')
   let inputArea = inform.querySelector('.entry')
   let outputArea = document.querySelector('#output')
 
+  let activate = function() {
+    process(inputArea, outputArea, unicodeSwitch.checked)
+  }
+
   hook(inform, 'submit', [], e => {
     e.preventDefault()
-    process(inputArea, outputArea)
+    activate()
   }, [])
 
   hook(inform, 'reset', [], e => {
     inputArea.replaceChildren()
-    process(inputArea, outputArea)
+    activate()
   }, [])
 
   hook(inputArea, 'focus', [], e => {
@@ -233,10 +264,20 @@ main(function ({window, document, localStorage}) {
     }
   }, [])
 
+  // hook(inputArea, 'paste', [], e => {
+  //   e.preventDefault()
+  //   console.log(e.clipboardData.getData('application/html'))
+  // }, [])
+
   hook(inputArea, 'blur', [], e => {
     e.preventDefault()
-    process(inputArea, outputArea)
+    activate()
   }, [])
 
-  process(inputArea, outputArea)
+  hook(unicodeSwitch, 'change', [], e => {
+    e.preventDefault()
+    activate()
+  }, [])
+
+  activate()
 })
